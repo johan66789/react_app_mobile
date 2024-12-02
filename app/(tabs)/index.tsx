@@ -4,13 +4,15 @@ import { type ImageSource } from "expo-image";
 import ImageViewer from "@/components/ImageViewer";
 import Button from "@/components/Button";
 import * as ImagePicker from 'expo-image-picker'; 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import IconButton from "@/components/IconButton";
 import CircleButton from "@/components/CircleButton";
 import EmojiPicker from "@/components/EmojiPicker";
 import EmojiList from "@/components/EmojiList";
 import EmojiSticker from "@/components/EmojiSticker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as MediaLibrary from 'expo-media-library';
+import {captureRef} from 'react-native-view-shot';
 
 const placeholderImage = require("../../assets/images/messi.jpg")
 export default function Index() {
@@ -22,7 +24,11 @@ export default function Index() {
   const [pickedEmoji,setPickedEmoji] = useState<ImageSource | undefined>(
     undefined
   );
-
+  const [status,requestPersmission] = MediaLibrary.usePermissions();
+  const imageRef = useRef<View>(null);
+  if(status === null){
+    requestPersmission();
+  }
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -52,12 +58,24 @@ export default function Index() {
   };
 
   const onSaveImageAsync = async () => {
-    // we will implement this later
+    try {
+      const localUri = await captureRef(imageRef, {
+        height: 440,
+        quality: 1,
+      });
+
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      if (localUri) {
+        alert('Saved!');
+      }
+    } catch (e) {
+      console.log(e);
+    }
   };    
   return (
     <GestureHandlerRootView style={{flex:1}}>
       <View style={styles.container}>
-        <View style={styles.ImageContainer}>
+        <View ref={imageRef} collapsable={false} style={styles.ImageContainer}>
           <ImageViewer imgSource={placeholderImage} selectedImage={selectedImage} />
           {pickedEmoji && <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />}
         </View>
